@@ -1,37 +1,44 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
 
-const Login = () => {
+const Signup = () => {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("Customer");
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", {
-        email,
-        password,
-      });
-      localStorage.setItem("token", response.data.token); // Store JWT token
-      localStorage.setItem("role", response.data.role);
-      if (response.data.role === "admin") {
-        navigate("/product-crud");
-      } else {
-        navigate("/products");
-      }
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/signup",
+        {
+          name,
+          email,
+          password,
+          role,
+        }
+      );
+      alert("Signup successful! Please log in.");
+      navigate("/"); // Redirect to login page
     } catch (error) {
-      console.error("Login failed", error);
-      alert("Invalid credentials");
+      console.error("Signup failed", error);
+      alert("Error during signup. Please try again.");
     }
   };
 
   return (
-    <>
     <form onSubmit={handleSubmit}>
-      <h1>Login</h1>
+      <h1>Signup</h1>
+      <label>Name:</label>
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        required
+      />
       <label>Email:</label>
       <input
         type="email"
@@ -46,13 +53,10 @@ const Login = () => {
         onChange={(e) => setPassword(e.target.value)}
         required
       />
-      <button type="submit">Login</button>
-      <p>
-        Don't have an account? <Link to="/signup">Sign up here</Link>
-      </p>
+
+      <button type="submit">Signup</button>
     </form>
-    </>
   );
 };
 
-export default Login;
+export default Signup;

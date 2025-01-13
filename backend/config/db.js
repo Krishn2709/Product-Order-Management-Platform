@@ -8,7 +8,7 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
 });
-
+const query = (text, params) => pool.query(text, params);
 pool.connect((err) => {
   if (err) {
     console.error("Database connection failed!", err);
@@ -17,4 +17,7 @@ pool.connect((err) => {
   }
 });
 
-module.exports = pool;
+module.exports = {
+  query,
+  pool,
+};

@@ -5,11 +5,13 @@ import Products from "./pages/Products";
 import OrdersCustomer from "./pages/OrdersCustomer";
 import OrdersAdmin from "./pages/OrdersAdmin";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 
 const App = () => {
   return (
     <Routes>
       <Route path="/" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
       <Route path="/product-crud" element={<ProductCRUD />} />
       <Route path="/products" element={<Products />} />
       <Route path="/orders-customer" element={<OrdersCustomer />} />
