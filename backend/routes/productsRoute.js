@@ -1,21 +1,60 @@
 const express = require("express");
 const router = express.Router();
-const { authenticateUser, authorizeCustomer, authorizeAdmin } = require('../middleware/authenticate');
-const { addProduct, getProducts, updateProduct, deleteProduct, deactivateProduct } = require('../controllers/productController');
-
-// Add a new product (Admin only)
-router.post("/add", addProduct);
+const {
+  authenticateUser,
+  authorizeAdmin,
+} = require("../middleware/authenticate");
+const {
+  addProductController,
+  editProductController,
+  deleteProductController,
+  restoreDeletedProductController,
+  getAllProductsController,
+  getAllProductsForAdminController,
+  addCategoryToProductController,
+} = require("../controllers/productController");
 
 // Get all products
-router.get("/", getProducts);
+router.get("/", getAllProductsController);
 
-// Edit an existing product (Admin only)
-router.put("/edit/:id", updateProduct);
+router.get(
+  "/admin",
+  authenticateUser,
+  authorizeAdmin,
+  getAllProductsForAdminController
+);
 
-// Delete a product (Admin only)
-router.delete("/delete/:id", authenticateUser,authorizeAdmin,deleteProduct);
+router.post("/add", authenticateUser, authorizeAdmin, addProductController);
+router.put(
+  "/edit/:id",
+  authenticateUser,
+  authorizeAdmin,
+  editProductController
+);
+router.delete(
+  "/delete/:id",
+  authenticateUser,
+  authorizeAdmin,
+  deleteProductController
+);
+router.post(
+  "/add-category/:id",
+  authenticateUser,
+  authorizeAdmin,
+  addCategoryToProductController
+);
+router.put(
+  "/restore/:id",
+  authenticateUser,
+  authorizeAdmin,
+  restoreDeletedProductController
+);
 
-// Deactivate a product (Admin only)
-router.patch("/deactivate/:id", deactivateProduct);
+router.post(
+  "/:id/category",
+  authenticateUser,
+  authorizeAdmin,
+  addCategoryToProductController
+);
 
 module.exports = router;

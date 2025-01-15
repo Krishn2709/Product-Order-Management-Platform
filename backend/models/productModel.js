@@ -1,8 +1,8 @@
-const db = require('../config/db');
+const db = require("../config/db");
 
 // Create the product table if it doesn't exist
 const createProductTable = async () => {
-    const query = `
+  const query = `
         CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
@@ -17,75 +17,104 @@ const createProductTable = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     `;
-    await db.query(query);
+  await db.query(query);
 };
 
-const addnewProduct = async ({ name, ws_code, price, mrp, package_size, tags, category, is_active }) => {
-    const query = `
-        INSERT INTO products (name, ws_code, sales_price, mrp, package_size, tags, categories, is_active)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING *;
+const addProduct = async (productDetails) => {
+  const { name, ws_code, price, mrp, package_size, tags, category, is_active } =
+    productDetails;
+
+  const query = `
+      INSERT INTO products (name, ws_code, sales_price, mrp, package_size, tags, categories, is_active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *;
     `;
-    const values = [name, ws_code, price, mrp, package_size, tags, category, is_active];
-    const result = await db.query(query, values);
-    return result.rows[0];
+  const values = [
+    name,
+    ws_code,
+    price,
+    mrp,
+    package_size,
+    tags,
+    category,
+    is_active,
+  ];
+  const result = await db.query(query, values);
+  return result.rows[0];
 };
 
-const getallProducts = async ({ search = null, category = null, page = 1, limit = 10 }) => {
-    const offset = (page - 1) * limit;
-    const query = `
-        SELECT * FROM products
-        WHERE is_active = TRUE
-        AND ($1::TEXT IS NULL OR name ILIKE '%' || $1 || '%')
-        AND ($2::TEXT IS NULL OR categories @> ARRAY[$2]::TEXT[])
-        LIMIT $3 OFFSET $4;
+const editProduct = async (id, productDetails) => {
+  const {
+    product_name,
+    ws_code,
+    price,
+    mrp,
+    package_size,
+    tags,
+    category,
+    is_active,
+  } = productDetails;
+
+  const query = `
+      UPDATE products
+      SET product_name = $1, ws_code = $2, price = $3, mrp = $4,
+          package_size = $5, tags = $6, category = $7, is_active = $8
+      WHERE id = $9
+      RETURNING *;
     `;
-    const values = [search, category, limit, offset];
-    const result = await db.query(query, values);
-    return result.rows;
+  const values = [
+    product_name,
+    ws_code,
+    price,
+    mrp,
+    package_size,
+    tags,
+    category,
+    is_active,
+    id,
+  ];
+  const result = await db.query(query, values);
+  return result.rows[0];
 };
 
-const updateselectedProduct = async (id, { product_name, ws_code, price, mrp, package_size, tags, category, is_active }) => {
-    const query = `
-        UPDATE products
-        SET product_name = $1, ws_code = $2, price = $3, mrp = $4,
-            package_size = $5, tags = $6, category = $7, is_active = $8
-        WHERE id = $9
-        RETURNING *;
+const deleteProduct = async (id) => {
+  const query = "UPDATE products SET is_deleted = TRUE WHERE id = $1";
+  await db.query(query, [id]);
+};
+
+const restoreDeletedProduct = async (id) => {
+  const query = "UPDATE products SET is_deleted = FALSE WHERE id = $1";
+  await db.query(query, [id]);
+};
+
+const getAllProducts = async () => {
+  const query =
+    "SELECT * FROM products WHERE is_deleted = FALSE AND is_active = TRUE";
+  const result = await db.query(query);
+  return result.rows;
+};
+
+const getAllProductsForAdmin = async () => {
+  const query = "SELECT * FROM products";
+  const result = await db.query(query);
+  return result.rows;
+};
+
+const addCategoryToProduct = async (productId, categoryId) => {
+  const query = `
+      INSERT INTO product_categories (product_id, category_id)
+      VALUES ($1, $2);
     `;
-    const values = [product_name, ws_code, price, mrp, package_size, tags, category, is_active, id];
-    const result = await db.query(query, values);
-    return result.rows[0];
-};
-
-const deleteselectedProduct = async (id) => {
-    const query = `DELETE FROM products WHERE id = $1 RETURNING *;`;
-    const result = await db.query(query, [id]);
-    return result.rows[0];
-};
-
-const deactivateselectedProduct = async (id) => {
-    const query = `
-        UPDATE products
-        SET is_active = FALSE
-        WHERE id = $1
-        RETURNING *;
-    `;
-    const result = await db.query(query, [id]);
-
-    // If no product is found, return null
-    if (result.rows.length === 0) {
-        return null;
-    }
-
-    return result.rows[0]; // Return the deactivated product
+  await db.query(query, [productId, categoryId]);
 };
 
 module.exports = {
-    createProductTable,
-    addnewProduct,
-    getallProducts,
-    updateselectedProduct,
-    deleteselectedProduct,
-    deactivateselectedProduct
-};
+  createProductTable,
+  addProduct,
+  editProduct,
+  deleteProduct,
+  restoreDeletedProduct,
+  getAllProducts,
+  addCategoryToProduct,
+  getAllProductsForAdmin,
+}

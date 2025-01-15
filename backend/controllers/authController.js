@@ -1,10 +1,10 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { loginUser, signupUser, getUserByEmail} =require("../models/userModel")
+const { loginUser, signupUser, getUserByEmail } = require('../models/userModel');
 
 // User signup
 const signup = async (req, res) => {
-    const { username, email, password, role } = req.body;
+    const { name, email, password } = req.body; // Removed role
 
     try {
         // Check if user already exists using the model function
@@ -14,7 +14,7 @@ const signup = async (req, res) => {
         }
 
         // Insert user into the database using the model function
-        const newUser = await signupUser(username, email, password, role);
+        const newUser = await signupUser(name, email, password); // No role passed
 
         if (newUser.error) {
             return res.status(400).json({ message: newUser.error });

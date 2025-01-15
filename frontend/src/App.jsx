@@ -1,22 +1,46 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
-import ProductCRUD from "./pages/ProductCRUD";
-import Products from "./pages/Products";
-import OrdersCustomer from "./pages/OrdersCustomer";
-import OrdersAdmin from "./pages/OrdersAdmin";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import ProtectedRoute from "./routes/ProtectedRoute";
+import AdminProductPage from "./pages/AdminProductPage";
 
 const App = () => {
   return (
-    <Routes>
-      <Route path="/" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/product-crud" element={<ProductCRUD />} />
-      <Route path="/products" element={<Products />} />
-      <Route path="/orders-customer" element={<OrdersCustomer />} />
-      <Route path="/orders-admin" element={<OrdersAdmin />} />
-    </Routes>
+    <Router>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+
+        {/* Admin-only route */}
+        <Route
+          path="/admin/products"
+          element={
+            <ProtectedRoute roles={["Admin"]}>
+              {/* Admin Products Page */}
+              <AdminProductPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Customer-only route */}
+        <Route
+          path="/customer/products"
+          element={
+            <ProtectedRoute roles={["Customer"]}>
+              {/* Customer Products Page */}
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Shared route */}
+        <Route
+          path="/dashboard"
+          element={<ProtectedRoute>{/* Dashboard Page */}</ProtectedRoute>}
+        />
+      </Routes>
+    </Router>
   );
 };
 

@@ -10,7 +10,7 @@ const createUserTable = async () => {
         name VARCHAR(100) NOT NULL,
         email VARCHAR(100) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
-        role VARCHAR(50) CHECK (role IN ('Admin', 'Customer')) NOT NULL,
+        role VARCHAR(50) DEFAULT 'Customer' CHECK (role IN ('Admin', 'Customer')) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     `;
@@ -50,10 +50,10 @@ const loginUser = async (email, password) => {
 };
 
 // User signup
-const signupUser = async (name, email, password, role) => {
+const signupUser = async (name, email, password) => { // Removed role parameter
     try {
         // Check if all fields are provided
-        if (!name || !email || !password || !role) {
+        if (!name || !email || !password) {
             return { error: 'All fields are required' };
         }
 
@@ -66,10 +66,10 @@ const signupUser = async (name, email, password, role) => {
         // Hash the password before saving it
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Insert the new user into the database
+        // Insert the new user into the database with default role 'Customer'
         const result = await db.query(
-            'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING *',
-            [name, email, hashedPassword, role]
+            'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *',
+            [name, email, hashedPassword]
         );
 
         // Return the created user data
