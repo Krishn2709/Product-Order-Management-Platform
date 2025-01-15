@@ -1,13 +1,16 @@
 import React, { useState } from "react";
 import axiosInstance from "../api/axios";
+import "../styles/login.css"; // Reusing the same CSS file
 
 const Signup = () => {
-  const [name, setname] = useState("");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleSignup = async (e) => {
     e.preventDefault();
+    setError(""); // Reset error before trying to sign up
     try {
       const response = await axiosInstance.post("/auth/signup", {
         name,
@@ -16,42 +19,49 @@ const Signup = () => {
       });
       alert(response.data.message || "User registered successfully!");
     } catch (error) {
-      console.error(error.response.data.message || "Signup failed");
+      setError(error.response?.data?.message || "Signup failed");
     }
   };
 
   return (
-    <form onSubmit={handleSignup} className="max-w-md mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-4">Sign Up</h2>
-      <input
-        type="text"
-        placeholder="Username"
-        value={name}
-        onChange={(e) => setname(e.target.value)}
-        className="w-full p-2 mb-4 border"
-      />
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        className="w-full p-2 mb-4 border"
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        className="w-full p-2 mb-4 border"
-      />
-
-      <button
-        type="submit"
-        className="w-full bg-blue-500 text-white p-2 rounded"
-      >
-        Sign Up
-      </button>
-    </form>
+    <div className="login-container">
+      <div className="login-card">
+        <h2 className="login-title">Sign Up</h2>
+        {error && <p className="error-message">{error}</p>}
+        <form onSubmit={handleSignup}>
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Username"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="input-field"
+            />
+          </div>
+          <div className="mb-4">
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="input-field"
+            />
+          </div>
+          <div className="mb-6">
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input-field"
+            />
+          </div>
+          <button type="submit" className="submit-btn">
+            Sign Up
+          </button>
+        </form>
+      </div>
+    </div>
   );
 };
 

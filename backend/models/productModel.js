@@ -21,8 +21,16 @@ const createProductTable = async () => {
 };
 
 const addProduct = async (productDetails) => {
-  const { name, ws_code, price, mrp, package_size, tags, category, is_active } =
-    productDetails;
+  const {
+    name,
+    ws_code,
+    sales_price,
+    mrp,
+    package_size,
+    tags,
+    category,
+    is_active,
+  } = productDetails;
 
   const query = `
       INSERT INTO products (name, ws_code, sales_price, mrp, package_size, tags, categories, is_active)
@@ -32,7 +40,7 @@ const addProduct = async (productDetails) => {
   const values = [
     name,
     ws_code,
-    price,
+    sales_price,
     mrp,
     package_size,
     tags,
@@ -45,31 +53,31 @@ const addProduct = async (productDetails) => {
 
 const editProduct = async (id, productDetails) => {
   const {
-    product_name,
+    name,
     ws_code,
-    price,
+    sales_price,
     mrp,
     package_size,
     tags,
-    category,
+    categories,
     is_active,
   } = productDetails;
 
   const query = `
       UPDATE products
-      SET product_name = $1, ws_code = $2, price = $3, mrp = $4,
-          package_size = $5, tags = $6, category = $7, is_active = $8
+      SET name = $1, ws_code = $2, sales_price = $3, mrp = $4,
+          package_size = $5, tags = $6, categories = $7, is_active = $8
       WHERE id = $9
       RETURNING *;
     `;
   const values = [
-    product_name,
+    name,
     ws_code,
-    price,
+    sales_price,
     mrp,
     package_size,
     tags,
-    category,
+    categories,
     is_active,
     id,
   ];
@@ -117,4 +125,4 @@ module.exports = {
   getAllProducts,
   addCategoryToProduct,
   getAllProductsForAdmin,
-}
+};

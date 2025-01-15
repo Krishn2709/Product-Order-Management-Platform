@@ -1,41 +1,76 @@
-import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { login } from '../features/auth/authSlice';
-import axiosInstance from '../api/axios';
+import React, { useState } from "react";
+import { useDispatch } from "react-redux";
+import { login } from "../features/auth/authSlice";
+import axiosInstance from "../api/axios";
+import { useNavigate } from "react-router-dom"; // For redirecting after login
+import "../styles/login.css"; // Import the CSS file
 
 const Login = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const dispatch = useDispatch();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
-    const handleLogin = async (e) => {
-        e.preventDefault();
-        try {
-            const response = await axiosInstance.post('/auth/login', { email, password });
-            dispatch(login({ user: response.data.user, token: response.data.token }));
-            alert('Login successful!');
-        } catch (error) {
-            console.error(error.response.data.message || 'Login failed');
-        }
-    };
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(""); // Reset error before trying to log in
+    try {
+      const response = await axiosInstance.post("/auth/login", {
+        email,
+        password,
+      });
 
-    return (
+      const { token, user } = response.data;
+      dispatch(login({ user, token }));
+      localStorage.setItem("token", token);
+      navigate("/admin/products");
+    } catch (error) {
+      setError(error.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="login-container">
+      <div className="login-card">
+        <h2 className="login-title">Login</h2>
+        {error && <p className="error-message">{error}</p>}
         <form onSubmit={handleLogin}>
+          <div className="mb-4">
             <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="input-field"
             />
+          </div>
+          <div className="mb-6">
             <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="input-field"
             />
-            <button type="submit">Login</button>
+          </div>
+          <button
+            type="submit"
+            className={`submit-btn ${
+              loading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            disabled={loading}
+          >
+            {loading ? "Logging in..." : "Login"}
+          </button>
         </form>
-    );
+      </div>
+    </div>
+  );
 };
 
 export default Login;
