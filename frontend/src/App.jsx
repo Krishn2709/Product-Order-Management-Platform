@@ -4,13 +4,15 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminProductPage from "./pages/AdminProductPage";
+import CustomerProductPage from "./pages/CustomerProductPage";
+import CartPage from "./pages/CartPage";
 
 const App = () => {
   return (
     <Router>
       <Routes>
         {/* Public routes */}
-        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
         {/* Admin-only route */}
@@ -26,10 +28,20 @@ const App = () => {
 
         {/* Customer-only route */}
         <Route
-          path="/customer/products"
+          path="/products"
           element={
             <ProtectedRoute roles={["Customer"]}>
               {/* Customer Products Page */}
+              <CustomerProductPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/cart"
+          element={
+            <ProtectedRoute roles={["Customer"]}>
+              <CartPage />
             </ProtectedRoute>
           }
         />
