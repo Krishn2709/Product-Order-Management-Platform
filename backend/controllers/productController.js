@@ -7,6 +7,7 @@ const {
   addCategoryToProduct,
   getAllProductsForAdmin,
 } = require("../models/productModel");
+const cloudinary = require("../config/cloudinary");
 
 // Add a new product
 const addProductController = async (req, res) => {
@@ -17,11 +18,21 @@ const addProductController = async (req, res) => {
       sales_price,
       mrp,
       package_size,
-      images,
       tags,
       category_id,
       is_active,
     } = req.body;
+
+    const images = [];
+    if (req.files && req.files.length > 0) {
+      // Upload each image to Cloudinary
+      for (const file of req.files) {
+        const result = await cloudinary.uploader.upload(file.path, {
+          folder: "products",
+        });
+        images.push(result.secure_url);
+      }
+    }
 
     const product = await addProduct(
       name,

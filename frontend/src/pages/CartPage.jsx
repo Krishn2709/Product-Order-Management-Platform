@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import "../styles/cart.css";
+import axiosInstance from "../api/axios";
+import { toast } from "react-toastify";
 
 const CartPage = () => {
   const [cart, setCart] = useState([]);
@@ -43,16 +45,41 @@ const CartPage = () => {
     return total + product.sales_price * product.quantity;
   }, 0);
 
-  const handlePlaceOrder = () => {
-    alert("Order placed successfully!");
-    // Redirect to order confirmation page or handle order submission
+  const handlePlaceOrder = async () => {
+    try {
+      const product_ids = cart.map((product) => product.id);
+      const quantities = cart.map((product) => product.quantity);
+      const total_price = cart.reduce(
+        (total, product) => total + product.sales_price * product.quantity,
+        0
+      );
+      console.log({
+        product_ids,
+        quantities,
+        total_price,
+      });
+
+      const response = await axiosInstance.post("/orders/place", {
+        product_ids,
+        quantities,
+        total_price,
+      });
+
+      if (response.status === 201) {
+        // Clear the cart locally after order placement
+        localStorage.removeItem("cart");
+        setCart([]);
+      }
+    } catch (error) {
+      console.error("Error placing order", error);
+    }
   };
 
   return (
     <>
       <Navbar />
+      <h1>Your Cart</h1>
       <div className="cart-container">
-        <h1>Your Cart</h1>
         {cart.length === 0 ? (
           <p>Your cart is empty!</p>
         ) : (
@@ -61,26 +88,29 @@ const CartPage = () => {
               <div key={product.id} className="cart-item">
                 <div className="cart-item-image">
                   <img
-                    src={product.image || "/placeholder-image.png"}
+                    src={
+                      "https://picsum.photos/200/300?grayscale" ||
+                      "/placeholder-image.png"
+                    }
                     alt={product.name}
                   />
                 </div>
                 <div className="cart-item-details">
-                  <h3>{product.name}</h3>
-                  <p>
+                  <h3 className="name">{product.name}</h3>
+                  <p className="price">
                     Price: ₹
                     {(product.sales_price * product.quantity).toFixed(2)}
                   </p>
-                  <div className="quantity-control">
+                  <div className="quantity-control ">
                     <button
-                      className="quantity-btn"
+                      className="quantity-btn1"
                       onClick={() => handleDecrement(product.id)}
                     >
                       -
                     </button>
-                    <span>{product.quantity}</span>
+                    <span className="quant">{product.quantity}</span>
                     <button
-                      className="quantity-btn"
+                      className="quantity-btn1"
                       onClick={() => handleIncrement(product.id)}
                     >
                       +
@@ -101,7 +131,7 @@ const CartPage = () => {
         {cart.length > 0 && (
           <div className="cart-summary">
             <h3>Cart Summary</h3>
-            <p>Total Price: ₹{totalPrice.toFixed(2)}</p>
+            <p className="sumPrice">Total Price: ₹{totalPrice.toFixed(2)}</p>
             <button className="place-order-btn" onClick={handlePlaceOrder}>
               Place Order
             </button>

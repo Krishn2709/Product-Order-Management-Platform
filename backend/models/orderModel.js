@@ -30,13 +30,18 @@ const createOrderDetailsTable = async () => {
 };
 
 // Place a new order
-const placeOrder = async (user_id, product_ids, total_price) => {
+const placeOrder = async (user_id, product_ids, total_price, quantities) => {
   const query = `
-        INSERT INTO orders (user_id, product_ids, status, total_price)
-        VALUES ($1, $2, 'Pending', $3 )
-        RETURNING *;
-    `;
-  const result = await db.query(query, [user_id, product_ids, total_price]);
+    INSERT INTO orders (user_id, product_ids, status, total_price, quantities)
+    VALUES ($1, $2, 'Pending', $3, $4)
+    RETURNING *;
+`;
+  const result = await db.query(query, [
+    user_id,
+    product_ids,
+    total_price,
+    quantities,
+  ]);
   return result.rows[0];
 };
 
@@ -67,6 +72,25 @@ const getOrders = async (role, user_id) => {
   return result.rows;
 };
 
+const getAllOrders = async (role) => {
+  let query;
+  query = "SELECT * FROM orders";
+
+  const result = await db.query(query);
+  return result.rows;
+};
+
+const updateOrderStatus = async (order_id, status) => {
+  const query = `
+    UPDATE orders
+    SET status = $1
+    WHERE id = $2
+    RETURNING *;
+  `;
+  const result = await db.query(query, [status, order_id]);
+  return result.rows[0];
+};
+
 module.exports = {
   createOrdersTable,
   createOrderDetailsTable,
@@ -74,4 +98,6 @@ module.exports = {
   addOrderItem,
   clearCart,
   getOrders,
+  updateOrderStatus,
+  getAllOrders,
 };

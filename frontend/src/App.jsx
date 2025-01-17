@@ -6,6 +6,8 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminProductPage from "./pages/AdminProductPage";
 import CustomerProductPage from "./pages/CustomerProductPage";
 import CartPage from "./pages/CartPage";
+import MyOrders from "./pages/MyOrders";
+import AdminOrders from "./pages/AdminOrders";
 
 const App = () => {
   return (
@@ -26,6 +28,16 @@ const App = () => {
           }
         />
 
+        <Route
+          path="/admin/orders"
+          element={
+            <ProtectedRoute roles={["Admin"]}>
+              {/* Admin Products Page */}
+              <AdminOrders />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Customer-only route */}
         <Route
           path="/products"
@@ -33,6 +45,16 @@ const App = () => {
             <ProtectedRoute roles={["Customer"]}>
               {/* Customer Products Page */}
               <CustomerProductPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/orders"
+          element={
+            <ProtectedRoute roles={["Customer"]}>
+              {/* Customer Products Page */}
+              <MyOrders />
             </ProtectedRoute>
           }
         />

@@ -1,4 +1,5 @@
 const express = require("express");
+const upload = require("../middleware/multer");
 const router = express.Router();
 const {
   authenticateUser,
@@ -24,7 +25,13 @@ router.get(
   getAllProductsForAdminController
 );
 
-router.post("/add", authenticateUser, authorizeAdmin, addProductController);
+router.post(
+  "/add",
+  authenticateUser,
+  authorizeAdmin,
+  upload.array("images"),
+  addProductController
+);
 router.put(
   "/edit/:id",
   authenticateUser,

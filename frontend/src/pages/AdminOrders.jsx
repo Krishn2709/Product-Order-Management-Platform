@@ -1,0 +1,211 @@
+import React, { useState, useEffect } from "react";
+import { Clock, Package, DollarSign, Edit } from "lucide-react";
+import Navbar from "../components/Navbar";
+import "../styles/adminOrder.css";
+import axiosInstance from "../api/axios";
+
+const AdminOrders = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [sortBy, setSortBy] = useState("date-desc");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [updatingOrder, setUpdatingOrder] = useState(null); // Track updates in progress
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get("/orders/allorders");
+      if (Array.isArray(response.data.orders)) {
+        setOrders(response.data.orders);
+        setError(null);
+      } else {
+        throw new Error("Unexpected response structure");
+      }
+    } catch (err) {
+      console.error("Error fetching orders:", err);
+      setError("Failed to load orders. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      console.log(orderId);
+      console.log(newStatus);
+      setUpdatingOrder(orderId); // Indicate the update process
+      await axiosInstance.put(`/orders/${orderId}/status`, {
+        status: newStatus,
+      });
+      fetchOrders(); // Refresh orders after update
+    } catch (err) {
+      console.error("Error updating order:", err);
+      alert("Failed to update order status. Please try again.");
+    } finally {
+      setUpdatingOrder(null); // Reset update state
+    }
+  };
+
+  const sortOrders = (orders) => {
+    if (!Array.isArray(orders)) return [];
+    return [...orders].sort((a, b) => {
+      switch (sortBy) {
+        case "date-desc":
+          return new Date(b.created_at) - new Date(a.created_at);
+        case "date-asc":
+          return new Date(a.created_at) - new Date(b.created_at);
+        case "price-desc":
+          return parseFloat(b.total_price) - parseFloat(a.total_price);
+        case "price-asc":
+          return parseFloat(a.total_price) - parseFloat(b.total_price);
+        default:
+          return 0;
+      }
+    });
+  };
+
+  const filterOrders = (orders) => {
+    if (filterStatus === "all") return orders;
+    return orders.filter(
+      (order) => order.status.toLowerCase() === filterStatus.toLowerCase()
+    );
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getStatusClass = (status) => {
+    switch (status.toLowerCase()) {
+      case "pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "dispatched":
+        return "bg-gray-100 text-gray-800";
+      case "delivered":
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-red-100 text-red-800";
+    }
+  };
+
+  const processedOrders = filterOrders(sortOrders(orders));
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[400px]">
+        <div className="text-lg text-gray-600">Loading orders...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-50 text-red-800 p-4 rounded-lg">{error}</div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <Navbar />
+      <div className="admin-orders-container">
+        <div className="orders-header">
+          <h1>Manage Orders</h1>
+          <div className="filters">
+            <select
+              className="select-input"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="date-desc">Newest First</option>
+              <option value="date-asc">Oldest First</option>
+              <option value="price-desc">Highest Price</option>
+              <option value="price-asc">Lowest Price</option>
+            </select>
+
+            <select
+              className="select-input"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="Pending">Pending</option>
+              <option value="Dispatched">Dispatched</option>
+              <option value="Delivered">Delivered</option>
+              <option value="Canceled">Canceled</option>
+            </select>
+          </div>
+        </div>
+
+        {processedOrders.length === 0 ? (
+          <div className="no-orders">No orders found</div>
+        ) : (
+          <div className="orders-grid">
+            {processedOrders.map((order) => (
+              <div key={order.id} className="order-card">
+                <div className="order-header">
+                  <div className="order-id">Order #{order.id}</div>
+                  <span
+                    className={`status-badge ${getStatusClass(order.status)}`}
+                  >
+                    {order.status}
+                  </span>
+                </div>
+                <div className="order-content">
+                  <div className="order-info">
+                    <Clock className="icon" />
+                    <span>{formatDate(order.created_at)}</span>
+                  </div>
+
+                  <div className="order-info">
+                    <Package className="icon" />
+                    <span>
+                      {order.quantities.reduce((a, b) => a + b, 0)} items
+                    </span>
+                  </div>
+
+                  <div className="order-info">
+                    <DollarSign className="icon" />
+                    <span className="price">
+                      ${parseFloat(order.total_price).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+                <div className="order-actions">
+                  <label htmlFor={`status-${order.id}`}>Update Status:</label>
+                  <select
+                    id={`status-${order.id}`}
+                    className="select-input"
+                    value={order.status}
+                    onChange={(e) =>
+                      updateOrderStatus(order.id, e.target.value)
+                    }
+                    disabled={updatingOrder === order.id}
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="Dispatched">Dispatched</option>
+                    <option value="Delivered">Delivered</option>
+                    <option value="Canceled">Canceled</option>
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+};
+
+export default AdminOrders;

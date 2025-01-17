@@ -15,7 +15,7 @@ const ProtectedRoute = ({ children, roles }) => {
 
   // If no token is found, redirect to login
   if (!token) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/" />;
   }
 
   // Decode the JWT token
@@ -24,7 +24,7 @@ const ProtectedRoute = ({ children, roles }) => {
 
   // If the user role is not in the allowed roles, redirect to login
   if (!roles.includes(userRole)) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/" />;
   }
 
   // If the token is valid and the role matches, render the children (protected page)

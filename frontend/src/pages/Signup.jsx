@@ -38,7 +38,7 @@ const Signup = () => {
                 placeholder="Username"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="input-field"
+                className="input-field username"
               />
             </div>
             <div className="mb-4">
@@ -50,7 +50,7 @@ const Signup = () => {
                 className="input-field"
               />
             </div>
-            <div className="mb-6">
+            <div className="mb-4">
               <input
                 type="password"
                 placeholder="Password"

@@ -14,7 +14,8 @@ const placeOrder = async (req, res) => {
     const order = await orderModel.placeOrder(
       user_id,
       product_ids,
-      total_price
+      total_price,
+      quantities
     );
 
     // Insert order details into order_items
@@ -44,4 +45,46 @@ const getOrders = async (req, res) => {
   }
 };
 
-module.exports = { placeOrder, getOrders };
+const getAllOrders = async (req, res) => {
+  const { role } = req.user;
+
+  try {
+    const orders = await orderModel.getAllOrders(role);
+    res.status(200).json({ orders });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const updateOrderStatusController = async (req, res) => {
+  const { order_id } = req.params;
+  const { status } = req.body;
+
+  // Validate the input
+  const validStatuses = ["Pending", "Dispatched", "Delivered", "Canceled"];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ message: "Invalid order status" });
+  }
+
+  try {
+    // Update the order status
+    const updatedOrder = await orderModel.updateOrderStatus(order_id, status);
+
+    if (!updatedOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    res
+      .status(200)
+      .json({ message: "Order status updated successfully", updatedOrder });
+  } catch (error) {
+    console.error("Error updating order status:", error.message);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+module.exports = {
+  placeOrder,
+  getOrders,
+  updateOrderStatusController,
+  getAllOrders,
+};

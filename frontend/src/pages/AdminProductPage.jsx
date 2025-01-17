@@ -2,11 +2,14 @@ import React, { useEffect, useState } from "react";
 import axiosInstance from "../api/axios";
 import Navbar from "../components/Navbar";
 import "../styles/adminProductPage.css";
+import { Link } from "react-router-dom";
 
 const AdminProductPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [products, setProducts] = useState([]);
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [newProduct, setNewProduct] = useState({
     name: "",
     ws_code: 0,
@@ -20,6 +23,10 @@ const AdminProductPage = () => {
   });
   const [categories, setCategories] = useState([]);
   const [editProduct, setEditProduct] = useState([]);
+  const [showModalCat, setShowModalCat] = useState(false);
+  const [newCat, setNewCat] = useState({
+    name: "",
+  });
 
   // Fetch all products for admin
   const fetchProducts = async () => {
@@ -36,6 +43,27 @@ const AdminProductPage = () => {
       console.error(error.response?.data?.message || "Error fetching products");
       setProducts([]); // fallback to an empty array in case of error
     }
+  };
+
+  const getFilteredProducts = () => {
+    let filteredProducts = products;
+
+    if (search.trim()) {
+      const searchLower = search.toLowerCase().trim();
+      filteredProducts = filteredProducts.filter((product) => {
+        const nameMatch = product.name.toLowerCase().includes(searchLower);
+        const wsCodeMatch = product.ws_code.toString().includes(searchLower);
+        return nameMatch || wsCodeMatch;
+      });
+    }
+
+    if (categoryFilter) {
+      filteredProducts = filteredProducts.filter(
+        (product) => product.category_id === parseInt(categoryFilter)
+      );
+    }
+
+    return filteredProducts;
   };
 
   // Fetch all categories
@@ -69,6 +97,22 @@ const AdminProductPage = () => {
         category_id: 0,
         images: [],
         is_active: true,
+      });
+      window.location.reload();
+    } catch (error) {
+      console.error(error.response?.data?.message || "Error adding product");
+    }
+  };
+
+  const handleAddCat = async (e) => {
+    e.preventDefault();
+    try {
+      console.log(newCat);
+      const response = await axiosInstance.post("/categories", newCat);
+      // Add the newly created product directly to the state
+      setCategories((prevCat) => [...prevCat, response.data]);
+      setNewProduct({
+        name: "",
       });
       window.location.reload();
     } catch (error) {
@@ -137,6 +181,42 @@ const AdminProductPage = () => {
     return category ? category.name : "No Category"; // Fallback if not found
   };
 
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files);
+
+    // Show local image previews
+    const uploadedImages = files.map((file) => URL.createObjectURL(file));
+
+    setNewProduct((prevProduct) => ({
+      ...prevProduct,
+      images: uploadedImages, // Temporarily store image URLs for preview
+    }));
+
+    // Now, upload to Cloudinary in the background
+    const cloudinaryImagePromises = files.map(async (file) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", "krishn");
+
+      try {
+        const response = await axios.post(
+          "https://api.cloudinary.com/v1_1/dsdvswevh/image/upload",
+          formData
+        );
+        return response.data.secure_url;
+      } catch (error) {
+        console.error("Error uploading to Cloudinary:", error);
+      }
+    });
+
+    const uploadedCloudinaryImages = await Promise.all(cloudinaryImagePromises);
+
+    setNewProduct((prevProduct) => ({
+      ...prevProduct,
+      images: uploadedCloudinaryImages,
+    }));
+  };
+
   useEffect(() => {
     fetchProducts();
     fetchCategories();
@@ -145,19 +225,96 @@ const AdminProductPage = () => {
   return (
     <>
       <Navbar />
-      <div className="p-6 bg-gray-50 min-h-screen">
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-        >
-          Add new Product
-        </button>
+      <div className=" bg-gray-50 min-h-screen admin-product-page">
+        <div className="headerbtn">
+          <button onClick={() => setShowModal(true)} className="headerbtn1">
+            + Add new Product
+          </button>
+          <button onClick={() => setShowModalCat(true)} className="headerbtn1">
+            + Add new Category
+          </button>
+          <button className="headerbtn1 ">
+            <Link className="allOrders" to="/admin/orders">
+              All Orders
+            </Link>
+          </button>
+        </div>
+        <div className=" searchFilter1 ">
+          <input
+            type="text"
+            placeholder="Search by name or WS code"
+            className="search-bar1"
+            style={{
+              flex: 1,
+              padding: "8px",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+            }}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)} // Update search state
+          />
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="categoryfilter"
+            style={{
+              marginLeft: "8px",
+              padding: "8px",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+            }}
+          >
+            <option value="">All Categories</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {showModalCat && (
+          <div className="modal-overlay">
+            <div className="modal-container">
+              <h2 className="text-xl font-semibold mb-4 modalTitle">
+                Add New Category
+              </h2>
+              <form onSubmit={handleAddCat} className="modal-form">
+                <input
+                  type="text"
+                  placeholder="Category Name"
+                  value={newCat.name}
+                  onChange={(e) =>
+                    setNewCat({ ...newCat, name: e.target.value })
+                  }
+                  className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
+                />
+
+                <button
+                  type="submit"
+                  className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                >
+                  Add Category
+                </button>
+                <button
+                  onClick={() => setShowModalCat(false)}
+                  className="cancel"
+                >
+                  Cancel
+                </button>
+              </form>
+              {/* Close button */}
+            </div>
+          </div>
+        )}
 
         {/* Modal */}
         {showModal && (
           <div className="modal-overlay">
             <div className="modal-container">
-              <h2 className="text-xl font-semibold mb-4">Add New Product</h2>
+              <h2 className="text-xl font-semibold mb-4 modalTitle">
+                Add New Product
+              </h2>
               <form onSubmit={handleAddProduct} className="modal-form">
                 <input
                   type="text"
@@ -222,28 +379,38 @@ const AdminProductPage = () => {
                   }
                   className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
                 />
+
+                {/* File Input for Image Upload */}
                 <input
-                  type="text"
-                  placeholder="Images (comma separated URLs)"
-                  value={newProduct.images.join(", ")}
-                  onChange={(e) =>
-                    setNewProduct({
-                      ...newProduct,
-                      images: e.target.value.split(", "),
-                    })
-                  }
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handleImageUpload(e)}
                   className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
                 />
+
+                {/* Image Previews */}
+                <div className="image-preview-container">
+                  {newProduct.images.length > 0 &&
+                    newProduct.images.map((image, index) => (
+                      <img
+                        key={index}
+                        src={image}
+                        alt={`Preview ${index}`}
+                        className="image-preview"
+                      />
+                    ))}
+                </div>
 
                 <select
                   value={newProduct.category_id}
                   onChange={(e) =>
                     setNewProduct({
                       ...newProduct,
-                      category_id: parseInt(e.target.value), // Parse the value to integer
+                      category_id: parseInt(e.target.value),
                     })
                   }
-                  className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
+                  className="categories"
                 >
                   <option value="">Select Category</option>
                   {categories.map((cat) => (
@@ -259,25 +426,21 @@ const AdminProductPage = () => {
                 >
                   Add Product
                 </button>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="absolute top-2 right-2 text-gray-500"
-                >
+                <button onClick={() => setShowModal(false)} className="cancel">
                   Cancel
                 </button>
               </form>
-              {/* Close button */}
             </div>
           </div>
         )}
 
         {/* Product List */}
-        <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="p-6 bg-gray-50 min-h-screen listprod">
           <h1 className="text-2xl font-bold mb-6">Manage Products</h1>
           <div className="grid-container">
-            {products.map((product) => (
+            {getFilteredProducts().map((product) => (
               <div key={product.id} className="card">
-                <h2>{product.name}</h2>
+                <h2 className="prodName">{product.name}</h2>
                 <p>WS Code: {product.ws_code}</p>
                 <p>Sales Price: ₹{product.sales_price}</p>
                 <p>MRP: ₹{product.mrp}</p>
@@ -299,7 +462,7 @@ const AdminProductPage = () => {
                   Status: {product.is_active ? "Active" : "Inactive"}
                 </p>
 
-                <div className="space-y-2">
+                <div className="space-y-2 buttonsedit">
                   <button
                     onClick={() => {
                       setEditProduct({
@@ -316,7 +479,7 @@ const AdminProductPage = () => {
                       });
                       setShowEditModal(true);
                     }}
-                    className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+                    className="bg-yellow-500  deactivate text-white rounded hover:bg-yellow-600"
                   >
                     Edit
                   </button>
@@ -326,7 +489,7 @@ const AdminProductPage = () => {
                     }
                     className={`${
                       product.is_active ? "bg-red-500" : "bg-green-500"
-                    } text-white px-4 py-2 rounded hover:bg-opacity-90`}
+                    } text-white deactivate  rounded hover:bg-opacity-90`}
                   >
                     {product.is_active ? "Deactivate" : "Activate"}
                   </button>
@@ -334,9 +497,7 @@ const AdminProductPage = () => {
                     onClick={() =>
                       toggleProductDeletedStatus(product.id, product.is_deleted)
                     }
-                    className={`${
-                      product.is_deleted ? "bg-red-500" : "bg-green-500"
-                    } text-white px-4 py-2 rounded hover:bg-opacity-90`}
+                    className="cancel"
                   >
                     Delete
                   </button>
@@ -350,7 +511,9 @@ const AdminProductPage = () => {
         {editProduct && showEditModal && (
           <div className="modal-overlay">
             <div className="modal-container">
-              <h2 className="text-xl font-semibold mb-4">Edit Product</h2>
+              <h2 className="text-xl font-semibold mb-4 modalTitle">
+                Edit Product
+              </h2>
               <form onSubmit={handleUpdateProduct} className="modal-form">
                 {/* Product Name */}
                 <input
@@ -432,7 +595,7 @@ const AdminProductPage = () => {
                       category_id: parseInt(e.target.value), // Parse the value to integer
                     })
                   }
-                  className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
+                  className="categories"
                 >
                   <option value="">Select Category</option>
                   {categories.map((cat) => (
@@ -451,7 +614,7 @@ const AdminProductPage = () => {
                 <button
                   type="button"
                   onClick={() => setEditProduct(null)}
-                  className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 mt-4"
+                  className="cancel"
                 >
                   Cancel
                 </button>

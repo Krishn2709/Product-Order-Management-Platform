@@ -50,7 +50,7 @@ const Navbar = () => {
           </li>
           <li>
             <Link to="/cart" className="navbar-link">
-              cart
+              Cart
             </Link>
           </li>
           <li>
@@ -59,8 +59,8 @@ const Navbar = () => {
             </Link>
           </li>
           <li>
-            <Link to="/contact" className="navbar-link">
-              Contact
+            <Link to="/orders" className="navbar-link">
+              Orders
             </Link>
           </li>
         </ul>
