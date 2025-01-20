@@ -9,6 +9,7 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  //Signup Handler
   const handleSignup = async (e) => {
     e.preventDefault();
     setError(""); // Reset error before trying to sign up

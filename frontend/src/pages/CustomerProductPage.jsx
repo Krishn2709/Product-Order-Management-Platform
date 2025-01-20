@@ -2,7 +2,9 @@ import React, { useEffect, useState } from "react";
 import axiosInstance from "../api/axios";
 import Navbar from "../components/Navbar";
 import "../styles/customerProductPage.css";
-import { Search } from "lucide-react";
+import { ToastContainer, toast } from "react-toastify";
+import Carousel from "../components/Carousel";
+import Footer from "../components/Footer";
 
 const CustomerProductPage = () => {
   const [products, setProducts] = useState([]);
@@ -10,14 +12,16 @@ const CustomerProductPage = () => {
   const [quantities, setQuantities] = useState({});
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 10000 });
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const [quantities_stock, setQuantities_stock] = useState({});
 
+  //Fetching All Products
   const fetchProducts = async () => {
     try {
       setLoading(true);
       const response = await axiosInstance.get("/products");
-      console.log("Fetched products:", response.data); // Debug log
       setProducts(response.data);
     } catch (error) {
       console.error(error.response?.data?.message || "Error fetching products");
@@ -26,6 +30,7 @@ const CustomerProductPage = () => {
     }
   };
 
+  //Add to Cart handler
   const handleAddToCart = (product) => {
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
     const productIndex = cart.findIndex((item) => item.id === product.id);
@@ -37,9 +42,42 @@ const CustomerProductPage = () => {
       cart.push(product);
     }
 
+    toast("Item Added to Cart");
+
     localStorage.setItem("cart", JSON.stringify(cart));
   };
 
+  const handleIncrement = (productId) => {
+    const responseData = products
+      .map((product) => {
+        if (product.id === productId) {
+          return {
+            stock_quantity: product.stock_quantity,
+          };
+        }
+      })
+      .filter(Boolean);
+
+    // Only increment if current quantity is less than stock quantity
+    if ((quantities[productId] || 0) < responseData[0].stock_quantity) {
+      setQuantities((prevQuantities) => ({
+        ...prevQuantities,
+        [productId]: (prevQuantities[productId] || 0) + 1,
+      }));
+    }
+  };
+
+  const handleDecrement = (productId) => {
+    setQuantities((prevQuantities) => {
+      const newQuantity = (prevQuantities[productId] || 1) - 1;
+      return {
+        ...prevQuantities,
+        [productId]: newQuantity > 0 ? newQuantity : 0,
+      };
+    });
+  };
+
+  //Fetching All Categories
   const fetchCategories = async () => {
     try {
       const response = await axiosInstance.get("/categories");
@@ -51,6 +89,7 @@ const CustomerProductPage = () => {
     }
   };
 
+  //Filtered Products Handler
   const getFilteredProducts = () => {
     let filteredProducts = products;
 
@@ -72,21 +111,21 @@ const CustomerProductPage = () => {
     return filteredProducts;
   };
 
-  const handleIncrement = (productId) => {
-    setQuantities((prevQuantities) => ({
-      ...prevQuantities,
-      [productId]: (prevQuantities[productId] || 0) + 1,
-    }));
-  };
+  // Calculate the paginated products
+  const filteredProducts = getFilteredProducts();
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
-  const handleDecrement = (productId) => {
-    setQuantities((prevQuantities) => {
-      const newQuantity = (prevQuantities[productId] || 1) - 1;
-      return {
-        ...prevQuantities,
-        [productId]: newQuantity > 0 ? newQuantity : 0,
-      };
-    });
+  //Pagination Handlers
+  const handlePageChange = (direction) => {
+    if (direction === "next" && currentPage < totalPages) {
+      setCurrentPage((prevPage) => prevPage + 1);
+    } else if (direction === "prev" && currentPage > 1) {
+      setCurrentPage((prevPage) => prevPage - 1);
+    }
   };
 
   useEffect(() => {
@@ -94,19 +133,32 @@ const CustomerProductPage = () => {
     fetchCategories();
   }, []);
 
-  // Debug log for filtered products
-  const filteredProducts = getFilteredProducts();
-  console.log("Filtered products:", filteredProducts);
-
   return (
     <>
       <Navbar />
+      <Carousel />
       <div className="customer-product-page">
-        <div className=" searchFilter2 ">
+        {/* Header */}
+        <div className="searchFilter2">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-search search-icon1"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
           <input
             type="text"
             placeholder="Search by name or WS code"
-            className="search-bar1"
+            className="search-bar1 searchbar2"
             style={{
               flex: 1,
               padding: "8px",
@@ -114,7 +166,7 @@ const CustomerProductPage = () => {
               borderRadius: "4px",
             }}
             value={search}
-            onChange={(e) => setSearch(e.target.value)} // Update search state
+            onChange={(e) => setSearch(e.target.value)}
           />
           <select
             value={categoryFilter}
@@ -136,26 +188,25 @@ const CustomerProductPage = () => {
           </select>
         </div>
 
+        {/* List All Products */}
         <div className="product-grid">
           {loading ? (
             <p>Loading products...</p>
-          ) : filteredProducts.length > 0 ? (
-            filteredProducts.map((product) => (
+          ) : paginatedProducts.length > 0 ? (
+            paginatedProducts.map((product) => (
               <div key={product.id} className="product-card">
                 <div className="product-image">
-                  <img
-                    src={
-                      "https://picsum.photos/200/300?grayscale" ||
-                      "/placeholder-image.png"
-                    }
-                    alt={product.name}
-                  />
+                  <img src={product.images} alt={product.name} />
                 </div>
                 <h2 className="product-name">{product.name}</h2>
                 <p className="product-code">WS Code: {product.ws_code}</p>
+                <p className="product-code">
+                  MRP: <del>₹{product.mrp}</del>
+                </p>
                 <p className="product-price">
                   Price: ₹{product.sales_price * (quantities[product.id] || 1)}
                 </p>
+
                 <div className="quantity-container">
                   <button
                     className="quantity-btn"
@@ -185,7 +236,28 @@ const CustomerProductPage = () => {
             <p className="no-products-message">No products match your search</p>
           )}
         </div>
+
+        {/* Pagination Controls */}
+        <div className="pagination-controls">
+          <button
+            onClick={() => handlePageChange("prev")}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          <span className="page-span">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={() => handlePageChange("next")}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
       </div>
+      <ToastContainer />
+      <Footer />
     </>
   );
 };

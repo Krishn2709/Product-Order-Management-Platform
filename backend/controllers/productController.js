@@ -19,20 +19,11 @@ const addProductController = async (req, res) => {
       mrp,
       package_size,
       tags,
+      images,
       category_id,
+      stock_quantity,
       is_active,
     } = req.body;
-
-    const images = [];
-    if (req.files && req.files.length > 0) {
-      // Upload each image to Cloudinary
-      for (const file of req.files) {
-        const result = await cloudinary.uploader.upload(file.path, {
-          folder: "products",
-        });
-        images.push(result.secure_url);
-      }
-    }
 
     const product = await addProduct(
       name,
@@ -43,6 +34,7 @@ const addProductController = async (req, res) => {
       images,
       tags,
       category_id,
+      stock_quantity,
       is_active
     );
 

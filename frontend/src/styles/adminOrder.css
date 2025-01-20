@@ -16,6 +16,11 @@
   font-weight: bold;
 }
 
+.search-icon {
+  margin-right: 5px;
+  color: #adaaaa;
+}
+
 .filters {
   display: flex;
   gap: 10px;

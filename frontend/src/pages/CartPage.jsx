@@ -2,22 +2,20 @@ import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import "../styles/cart.css";
 import axiosInstance from "../api/axios";
-import { toast } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
+import Footer from "../components/Footer";
 
 const CartPage = () => {
   const [cart, setCart] = useState([]);
 
-  useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem("cart")) || [];
-    setCart(savedCart);
-  }, []);
-
+  // Remove Item From Cart
   const handleRemoveFromCart = (productId) => {
     const updatedCart = cart.filter((product) => product.id !== productId);
     setCart(updatedCart);
     localStorage.setItem("cart", JSON.stringify(updatedCart));
   };
 
+  // Cart Quantity Handlers
   const handleIncrement = (productId) => {
     const updatedCart = cart.map((product) => {
       if (product.id === productId) {
@@ -28,7 +26,6 @@ const CartPage = () => {
     setCart(updatedCart);
     localStorage.setItem("cart", JSON.stringify(updatedCart));
   };
-
   const handleDecrement = (productId) => {
     const updatedCart = cart.map((product) => {
       if (product.id === productId && product.quantity > 1) {
@@ -45,6 +42,7 @@ const CartPage = () => {
     return total + product.sales_price * product.quantity;
   }, 0);
 
+  // Place Order Handler
   const handlePlaceOrder = async () => {
     try {
       const product_ids = cart.map((product) => product.id);
@@ -70,10 +68,17 @@ const CartPage = () => {
         localStorage.removeItem("cart");
         setCart([]);
       }
+
+      toast("Order Placed Successfully");
     } catch (error) {
       console.error("Error placing order", error);
     }
   };
+
+  useEffect(() => {
+    const savedCart = JSON.parse(localStorage.getItem("cart")) || [];
+    setCart(savedCart);
+  }, []);
 
   return (
     <>
@@ -88,10 +93,7 @@ const CartPage = () => {
               <div key={product.id} className="cart-item">
                 <div className="cart-item-image">
                   <img
-                    src={
-                      "https://picsum.photos/200/300?grayscale" ||
-                      "/placeholder-image.png"
-                    }
+                    src={product.images || "/placeholder-image.png"}
                     alt={product.name}
                   />
                 </div>
@@ -138,6 +140,8 @@ const CartPage = () => {
           </div>
         )}
       </div>
+      <Footer />
+      <ToastContainer />
     </>
   );
 };

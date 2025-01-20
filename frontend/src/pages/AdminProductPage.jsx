@@ -3,6 +3,7 @@ import axiosInstance from "../api/axios";
 import Navbar from "../components/Navbar";
 import "../styles/adminProductPage.css";
 import { Link } from "react-router-dom";
+import Footer from "../components/Footer";
 
 const AdminProductPage = () => {
   const [showModal, setShowModal] = useState(false);
@@ -12,10 +13,11 @@ const AdminProductPage = () => {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [newProduct, setNewProduct] = useState({
     name: "",
-    ws_code: 0,
-    sales_price: 0,
-    mrp: 0,
-    package_size: 0,
+    ws_code: "",
+    sales_price: "",
+    mrp: "",
+    package_size: "",
+    stock_quantity: "",
     tags: [],
     category_id: 0,
     images: [],
@@ -24,9 +26,44 @@ const AdminProductPage = () => {
   const [categories, setCategories] = useState([]);
   const [editProduct, setEditProduct] = useState([]);
   const [showModalCat, setShowModalCat] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [newCat, setNewCat] = useState({
     name: "",
   });
+
+  //Validation for Add Product
+  const validateForm = () => {
+    const validationErrors = {};
+
+    if (!newProduct.name) {
+      validationErrors.name = "Product name is required.";
+    }
+    if (newProduct.ws_code <= 0) {
+      validationErrors.ws_code = "WS Code must be a positive number.";
+    }
+    if (newProduct.sales_price <= 0) {
+      validationErrors.sales_price = "Sales price must be a positive number.";
+    }
+    if (newProduct.mrp <= 0) {
+      validationErrors.mrp = "MRP must be a positive number.";
+    }
+    if (newProduct.sales_price >= newProduct.mrp) {
+      validationErrors.sales_price = "Sales price must be lower than MRP.";
+    }
+    if (
+      newProduct.package_size <= 0 ||
+      !Number.isInteger(newProduct.package_size)
+    ) {
+      validationErrors.package_size =
+        "Package size must be a positive whole number.";
+    }
+
+    setErrors(validationErrors);
+    return Object.keys(validationErrors).length === 0;
+  };
 
   // Fetch all products for admin
   const fetchProducts = async () => {
@@ -34,7 +71,10 @@ const AdminProductPage = () => {
       const response = await axiosInstance.get("/products/admin");
 
       if (response.data && Array.isArray(response.data)) {
-        setProducts(response.data);
+        const sortedProducts = response.data.sort((a, b) => {
+          return new Date(b.created_at) - new Date(a.created_at);
+        });
+        setProducts(sortedProducts);
       } else {
         console.error("Products not found or invalid data structure");
         setProducts([]); // fallback to an empty array
@@ -45,6 +85,7 @@ const AdminProductPage = () => {
     }
   };
 
+  //Filtered Products
   const getFilteredProducts = () => {
     let filteredProducts = products;
 
@@ -66,6 +107,23 @@ const AdminProductPage = () => {
     return filteredProducts;
   };
 
+  // Calculate the paginated products
+  const filteredProducts = getFilteredProducts();
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  //Pagination
+  const handlePageChange = (direction) => {
+    if (direction === "next" && currentPage < totalPages) {
+      setCurrentPage((prevPage) => prevPage + 1);
+    } else if (direction === "prev" && currentPage > 1) {
+      setCurrentPage((prevPage) => prevPage - 1);
+    }
+  };
+
   // Fetch all categories
   const fetchCategories = async () => {
     try {
@@ -79,31 +137,7 @@ const AdminProductPage = () => {
     }
   };
 
-  // Add a new product
-  const handleAddProduct = async (e) => {
-    e.preventDefault();
-    try {
-      console.log(newProduct);
-      const response = await axiosInstance.post("/products/add", newProduct);
-      // Add the newly created product directly to the state
-      setProducts((prevProducts) => [...prevProducts, response.data]);
-      setNewProduct({
-        name: "",
-        ws_code: 0,
-        sales_price: 0,
-        mrp: 0,
-        package_size: 0,
-        tags: [],
-        category_id: 0,
-        images: [],
-        is_active: true,
-      });
-      window.location.reload();
-    } catch (error) {
-      console.error(error.response?.data?.message || "Error adding product");
-    }
-  };
-
+  //Add New Category
   const handleAddCat = async (e) => {
     e.preventDefault();
     try {
@@ -120,26 +154,7 @@ const AdminProductPage = () => {
     }
   };
 
-  const handleUpdateProduct = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await axiosInstance.put(
-        `/products/edit/${editProduct.id}`,
-        editProduct
-      );
-      // Optimistically update the products list
-      setProducts((prevProducts) =>
-        prevProducts.map((prod) =>
-          prod.id === editProduct.id ? response.data : prod
-        )
-      );
-      setEditProduct(null); // Reset edit state
-      window.location.reload();
-    } catch (error) {
-      console.error(error.response?.data?.message || "Error updating product");
-    }
-  };
-
+  //Change Status of the Product
   const toggleProductActiveStatus = async (id, isActive) => {
     const updatedProducts = products.map((product) =>
       product.id === id ? { ...product, is_active: !isActive } : product
@@ -161,6 +176,8 @@ const AdminProductPage = () => {
       );
     }
   };
+
+  //Change Delete Status of the Product
   const toggleProductDeletedStatus = async (id, isDeleted) => {
     try {
       const response = await axiosInstance.delete(`/products/delete/${id}`, {
@@ -176,45 +193,186 @@ const AdminProductPage = () => {
     }
   };
 
+  //Fetching Category Name
   const getCategoryName = (categoryId) => {
     const category = categories.find((cat) => cat.id === categoryId);
     return category ? category.name : "No Category"; // Fallback if not found
   };
 
-  const handleImageUpload = async (e) => {
-    const files = Array.from(e.target.files);
-
-    // Show local image previews
-    const uploadedImages = files.map((file) => URL.createObjectURL(file));
-
-    setNewProduct((prevProduct) => ({
-      ...prevProduct,
-      images: uploadedImages, // Temporarily store image URLs for preview
-    }));
-
-    // Now, upload to Cloudinary in the background
-    const cloudinaryImagePromises = files.map(async (file) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", "krishn");
-
+  // Add a new product
+  const handleAddProduct = async (e) => {
+    e.preventDefault();
+    if (validateForm()) {
       try {
-        const response = await axios.post(
-          "https://api.cloudinary.com/v1_1/dsdvswevh/image/upload",
-          formData
-        );
-        return response.data.secure_url;
+        if (!newProduct.name || !newProduct.category_id) {
+          alert("Please fill in all required fields");
+          return;
+        }
+        console.log(newProduct);
+        const response = await axiosInstance.post("/products/add", newProduct);
+        console.log(newProduct);
+        setProducts((prevProducts) => [response.data, ...prevProducts]);
+        setNewProduct({
+          name: "",
+          ws_code: "",
+          sales_price: "",
+          mrp: "",
+          package_size: "",
+          stock_quantity: "",
+          tags: [],
+          category_id: 0,
+          images: [],
+          is_active: true,
+        });
+        window.location.reload();
       } catch (error) {
-        console.error("Error uploading to Cloudinary:", error);
+        console.error(error.response?.data?.message || "Error adding product");
       }
-    });
+    }
+  };
 
-    const uploadedCloudinaryImages = await Promise.all(cloudinaryImagePromises);
+  //Edit a Product
+  const handleUpdateProduct = async (e) => {
+    e.preventDefault();
 
-    setNewProduct((prevProduct) => ({
-      ...prevProduct,
-      images: uploadedCloudinaryImages,
-    }));
+    try {
+      const response = await axiosInstance.put(
+        `/products/edit/${editProduct.id}`,
+        editProduct
+      );
+      // Update the product while maintaining its position
+      setProducts((prevProducts) =>
+        prevProducts.map((prod) =>
+          prod.id === editProduct.id ? response.data : prod
+        )
+      );
+
+      setEditProduct(null); // Reset edit state
+      window.location.reload();
+    } catch (error) {
+      console.error(error.response?.data?.message || "Error updating product");
+    }
+  };
+
+  //Upload Image
+  const uploadImages = async (files) => {
+    const urls = [];
+    const UPLOAD_PRESET = "productOrderPlatform";
+    const CLOUD_NAME = "dsdvswevh";
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+    try {
+      for (const file of files) {
+        // Validate file type and size
+        if (!ALLOWED_TYPES.includes(file.type)) {
+          throw new Error(
+            `Invalid file type: ${file.type}. Allowed types: JPEG, PNG, WebP`
+          );
+        }
+
+        if (file.size > MAX_FILE_SIZE) {
+          throw new Error(
+            `File too large: ${(file.size / 1024 / 1024).toFixed(
+              2
+            )}MB. Maximum size: 5MB`
+          );
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", UPLOAD_PRESET);
+        console.log(formData);
+
+        const response = await fetch(
+          `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        urls.push(data.secure_url);
+      }
+      return urls;
+    } catch (error) {
+      console.error("Image upload error:", error);
+      throw error;
+    }
+  };
+
+  // Component handlers for Image upload
+  const handleImageUpload = async (e) => {
+    try {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      // Show loading state
+      setIsUploading(true);
+
+      const uploadedUrls = await uploadImages(files);
+
+      setNewProduct((prev) => ({
+        ...prev,
+        images: [...prev.images, ...uploadedUrls],
+      }));
+    } catch (error) {
+      // Handle error appropriately in your UI
+      alert(error.message);
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      e.target.value = "";
+    }
+  };
+
+  const handleEditImageUpload = async (e) => {
+    try {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      // Show loading state
+      setIsUploading(true);
+
+      const uploadedUrls = await uploadImages(files);
+
+      setEditProduct((prev) => ({
+        ...prev,
+        images: [...prev.images, ...uploadedUrls],
+      }));
+    } catch (error) {
+      // Handle error appropriately in your UI
+      alert(error.message);
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      e.target.value = "";
+    }
+  };
+
+  // Image removal handler with confirmation
+  const removeImage = (index) => {
+    if (window.confirm("Are you sure you want to remove this image?")) {
+      setNewProduct((prev) => ({
+        ...prev,
+        images: prev.images.filter((_, i) => i !== index),
+      }));
+    }
+  };
+
+  //Image handler (Edit a Product)
+  const removeEditImage = (index) => {
+    if (window.confirm("Are you sure you want to remove this image?")) {
+      setEditProduct((prev) => ({
+        ...prev,
+        images: prev.images.filter((_, i) => i !== index),
+      }));
+    }
   };
 
   useEffect(() => {
@@ -225,7 +383,9 @@ const AdminProductPage = () => {
   return (
     <>
       <Navbar />
+
       <div className=" bg-gray-50 min-h-screen admin-product-page">
+        {/* //Header */}
         <div className="headerbtn">
           <button onClick={() => setShowModal(true)} className="headerbtn1">
             + Add new Product
@@ -240,6 +400,21 @@ const AdminProductPage = () => {
           </button>
         </div>
         <div className=" searchFilter1 ">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-search search-icon1"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
           <input
             type="text"
             placeholder="Search by name or WS code"
@@ -273,178 +448,21 @@ const AdminProductPage = () => {
           </select>
         </div>
 
-        {showModalCat && (
-          <div className="modal-overlay">
-            <div className="modal-container">
-              <h2 className="text-xl font-semibold mb-4 modalTitle">
-                Add New Category
-              </h2>
-              <form onSubmit={handleAddCat} className="modal-form">
-                <input
-                  type="text"
-                  placeholder="Category Name"
-                  value={newCat.name}
-                  onChange={(e) =>
-                    setNewCat({ ...newCat, name: e.target.value })
-                  }
-                  className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
-                />
-
-                <button
-                  type="submit"
-                  className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                >
-                  Add Category
-                </button>
-                <button
-                  onClick={() => setShowModalCat(false)}
-                  className="cancel"
-                >
-                  Cancel
-                </button>
-              </form>
-              {/* Close button */}
-            </div>
-          </div>
-        )}
-
-        {/* Modal */}
-        {showModal && (
-          <div className="modal-overlay">
-            <div className="modal-container">
-              <h2 className="text-xl font-semibold mb-4 modalTitle">
-                Add New Product
-              </h2>
-              <form onSubmit={handleAddProduct} className="modal-form">
-                <input
-                  type="text"
-                  placeholder="Product Name"
-                  value={newProduct.name}
-                  onChange={(e) =>
-                    setNewProduct({ ...newProduct, name: e.target.value })
-                  }
-                  className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
-                />
-                <input
-                  type="number"
-                  placeholder="WS Code"
-                  value={newProduct.ws_code}
-                  onChange={(e) =>
-                    setNewProduct({ ...newProduct, ws_code: +e.target.value })
-                  }
-                  className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
-                />
-                <input
-                  type="number"
-                  placeholder="Sales Price"
-                  value={newProduct.sales_price}
-                  onChange={(e) =>
-                    setNewProduct({
-                      ...newProduct,
-                      sales_price: +e.target.value,
-                    })
-                  }
-                  className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
-                />
-                <input
-                  type="number"
-                  placeholder="MRP"
-                  value={newProduct.mrp}
-                  onChange={(e) =>
-                    setNewProduct({ ...newProduct, mrp: +e.target.value })
-                  }
-                  className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
-                />
-                <input
-                  type="number"
-                  placeholder="Package Size"
-                  value={newProduct.package_size}
-                  onChange={(e) =>
-                    setNewProduct({
-                      ...newProduct,
-                      package_size: +e.target.value,
-                    })
-                  }
-                  className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
-                />
-                <input
-                  type="text"
-                  placeholder="Tags (comma separated)"
-                  value={newProduct.tags.join(", ")}
-                  onChange={(e) =>
-                    setNewProduct({
-                      ...newProduct,
-                      tags: e.target.value.split(", "),
-                    })
-                  }
-                  className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
-                />
-
-                {/* File Input for Image Upload */}
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => handleImageUpload(e)}
-                  className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
-                />
-
-                {/* Image Previews */}
-                <div className="image-preview-container">
-                  {newProduct.images.length > 0 &&
-                    newProduct.images.map((image, index) => (
-                      <img
-                        key={index}
-                        src={image}
-                        alt={`Preview ${index}`}
-                        className="image-preview"
-                      />
-                    ))}
-                </div>
-
-                <select
-                  value={newProduct.category_id}
-                  onChange={(e) =>
-                    setNewProduct({
-                      ...newProduct,
-                      category_id: parseInt(e.target.value),
-                    })
-                  }
-                  className="categories"
-                >
-                  <option value="">Select Category</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-
-                <button
-                  type="submit"
-                  className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                >
-                  Add Product
-                </button>
-                <button onClick={() => setShowModal(false)} className="cancel">
-                  Cancel
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-
         {/* Product List */}
         <div className="p-6 bg-gray-50 min-h-screen listprod">
           <h1 className="text-2xl font-bold mb-6">Manage Products</h1>
           <div className="grid-container">
-            {getFilteredProducts().map((product) => (
+            {paginatedProducts.map((product) => (
               <div key={product.id} className="card">
+                <div className="product-image">
+                  <img src={product.images} alt={product.name} />
+                </div>
                 <h2 className="prodName">{product.name}</h2>
                 <p>WS Code: {product.ws_code}</p>
-                <p>Sales Price: ₹{product.sales_price}</p>
                 <p>MRP: ₹{product.mrp}</p>
+                <p>Sales Price: ₹{product.sales_price}</p>
                 <p>Package Size: {product.package_size}</p>
+                <p>Available Stock: {product.stock_quantity}</p>
                 <p>
                   Categories:{" "}
                   {product.category_id
@@ -507,13 +525,357 @@ const AdminProductPage = () => {
           </div>
         </div>
 
+        {/* Add Product Modal */}
+        {showModal && (
+          <div className="modal-overlay">
+            <div className="modal-container">
+              <div className="modal-header">
+                <h2 className="text-xl font-semibold mb-4 modalTitle">
+                  Add New Product
+                </h2>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="Cancel-btn modalTitle"
+                  aria-label="Close modal"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-x cancel-svg"
+                  >
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <form onSubmit={handleAddProduct} className="modal-form">
+                {/* Error state */}
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Product Name"
+                    value={newProduct.name}
+                    onChange={(e) =>
+                      setNewProduct({ ...newProduct, name: e.target.value })
+                    }
+                    className="input-field11"
+                  />
+                </div>
+
+                {/* WS Code */}
+                <div className="relative">
+                  <input
+                    type="number"
+                    placeholder="WS Code"
+                    value={newProduct.ws_code}
+                    onChange={(e) => {
+                      const value = +e.target.value;
+                      setNewProduct({ ...newProduct, ws_code: value });
+                      setErrors((prev) => ({
+                        ...prev,
+                        ws_code:
+                          value <= 0 ? "WS Code must be a positive number" : "",
+                      }));
+                    }}
+                    className="input-field11"
+                  />
+                  {errors.ws_code && (
+                    <div className="tooltip">{errors.ws_code}</div>
+                  )}
+                </div>
+
+                {/* MRP */}
+                <div className="relative">
+                  <input
+                    type="number"
+                    placeholder="MRP"
+                    value={newProduct.mrp}
+                    onChange={(e) => {
+                      const value = +e.target.value;
+                      setNewProduct({ ...newProduct, mrp: value });
+                      setErrors((prev) => ({
+                        ...prev,
+                        mrp: value <= 0 ? "MRP must be a positive number" : "",
+                      }));
+                    }}
+                    className="input-field11"
+                  />
+                  {errors.mrp && <div className="tooltip">{errors.mrp}</div>}
+                </div>
+                {/* Sales Price */}
+                <div className="relative">
+                  <input
+                    type="number"
+                    placeholder="Sales Price"
+                    value={newProduct.sales_price}
+                    onChange={(e) => {
+                      const value = +e.target.value;
+                      setNewProduct({ ...newProduct, sales_price: value });
+                      setErrors((prev) => ({
+                        ...prev,
+                        sales_price:
+                          value <= 0
+                            ? "Sales price must be positive"
+                            : value >= newProduct.mrp
+                            ? "Sales price must be less than MRP"
+                            : "",
+                      }));
+                    }}
+                    className="input-field11"
+                  />
+                  {errors.sales_price && (
+                    <div className="tooltip">{errors.sales_price}</div>
+                  )}
+                </div>
+
+                {/* Package Size */}
+                <div className="relative">
+                  <input
+                    type="number"
+                    placeholder="Package Size"
+                    value={newProduct.package_size}
+                    onChange={(e) => {
+                      const value = +e.target.value;
+                      setNewProduct({ ...newProduct, package_size: value });
+                      setErrors((prev) => ({
+                        ...prev,
+                        package_size:
+                          value <= 0
+                            ? "Package size must be a positive number"
+                            : !Number.isInteger(value)
+                            ? "Package size must be a whole number"
+                            : "",
+                      }));
+                    }}
+                    className="input-field11"
+                  />
+                  {errors.package_size && (
+                    <div className="tooltip">{errors.package_size}</div>
+                  )}
+                </div>
+
+                {/* stock_quantity */}
+                <div className="relative">
+                  <input
+                    type="number"
+                    placeholder="Stock Quantity"
+                    value={newProduct.stock_quantity}
+                    onChange={(e) => {
+                      const value = +e.target.value;
+                      setNewProduct({ ...newProduct, stock_quantity: value });
+                      setErrors((prev) => ({
+                        ...prev,
+                        stock_quantity:
+                          value <= 0
+                            ? "Stock Quantity must be a positive number"
+                            : !Number.isInteger(value)
+                            ? "Stock Quantity must be a whole number"
+                            : "",
+                      }));
+                    }}
+                    className="input-field11"
+                  />
+                  {errors.package_size && (
+                    <div className="tooltip">{errors.package_size}</div>
+                  )}
+                </div>
+
+                {/* Tags */}
+                <input
+                  type="text"
+                  placeholder="Tags (comma separated)"
+                  value={newProduct.tags.join(", ")}
+                  onChange={(e) =>
+                    setNewProduct({
+                      ...newProduct,
+                      tags: e.target.value.split(", "),
+                    })
+                  }
+                  className="input-field11"
+                />
+
+                {/* Image Upload */}
+                <div className="upload-container">
+                  {isUploading && (
+                    <span className="upload-status">Uploading images...</span>
+                  )}
+                  <div className="upload-controls">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleImageUpload}
+                      disabled={isUploading}
+                      className="file-input"
+                      id="image-upload"
+                    />
+                    <label
+                      htmlFor="image-upload"
+                      className={`upload-button ${
+                        isUploading ? "upload-button-disabled" : ""
+                      }`}
+                    >
+                      {isUploading ? "Uploading..." : "Upload Images"}
+                    </label>
+                  </div>
+
+                  <div className="image-grid">
+                    {newProduct.images.map((url, index) => (
+                      <div key={index} className="image-container">
+                        <img
+                          src={url}
+                          alt={`Product ${index + 1}`}
+                          className="product-image"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="remove-button"
+                          title="Remove image"
+                        >
+                          <svg
+                            className="remove-icon"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Category Dropdown */}
+                <select
+                  value={newProduct.category_id}
+                  onChange={(e) =>
+                    setNewProduct({
+                      ...newProduct,
+                      category_id: parseInt(e.target.value),
+                    })
+                  }
+                  className="categories"
+                >
+                  <option value="">Select Category</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                >
+                  Add Product
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Add Category Modal */}
+        {showModalCat && (
+          <div className="modal-overlay">
+            <div className="modal-container">
+              <div className="modal-header">
+                <h2 className="text-xl font-semibold mb-4 modalTitle">
+                  Add New Category
+                </h2>
+                <button
+                  onClick={() => setShowModalCat(false)}
+                  className="Cancel-btn modalTitle"
+                  aria-label="Close modal"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-x cancel-svg"
+                  >
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <form onSubmit={handleAddCat} className="modal-form">
+                <input
+                  type="text"
+                  placeholder="Category Name"
+                  value={newCat.name}
+                  onChange={(e) =>
+                    setNewCat({ ...newCat, name: e.target.value })
+                  }
+                  className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
+                />
+
+                <button
+                  type="submit"
+                  className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                >
+                  Add Category
+                </button>
+              </form>
+              {/* Close button */}
+            </div>
+          </div>
+        )}
+
         {/* Edit Product Modal */}
         {editProduct && showEditModal && (
           <div className="modal-overlay">
             <div className="modal-container">
-              <h2 className="text-xl font-semibold mb-4 modalTitle">
-                Edit Product
-              </h2>
+              <div className="modal-header">
+                <h2 className="text-xl font-semibold mb-4 modalTitle">
+                  Edit Product
+                </h2>
+                <button
+                  onClick={() => setEditProduct(false)}
+                  className="Cancel-btn modalTitle"
+                  aria-label="Close modal"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-x cancel-svg"
+                  >
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                  </svg>
+                </button>
+              </div>
+
               <form onSubmit={handleUpdateProduct} className="modal-form">
                 {/* Product Name */}
                 <input
@@ -561,6 +923,7 @@ const AdminProductPage = () => {
                   className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
                   placeholder="MRP"
                 />
+                {/* pakage size */}
                 <input
                   type="number"
                   value={editProduct.package_size}
@@ -572,6 +935,19 @@ const AdminProductPage = () => {
                   }
                   className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
                   placeholder="MRP"
+                />
+                {/* Stock Quantity */}
+                <input
+                  type="number"
+                  value={editProduct.stock_quantity}
+                  onChange={(e) =>
+                    setEditProduct({
+                      ...editProduct,
+                      stock_quantity: e.target.value,
+                    })
+                  }
+                  className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
+                  placeholder="Available Stock"
                 />
                 {/* Tags */}
                 <input
@@ -586,6 +962,63 @@ const AdminProductPage = () => {
                   className="p-3 border border-gray-300 rounded-lg mb-4 w-full"
                   placeholder="Tags (comma separated)"
                 />
+
+                <div className="upload-container">
+                  {isUploading && (
+                    <span className="upload-status">Uploading images...</span>
+                  )}
+                  <div className="upload-controls">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleEditImageUpload}
+                      disabled={isUploading}
+                      className="file-input"
+                      id="image-upload"
+                    />
+                    <label
+                      htmlFor="image-upload"
+                      className={`upload-button ${
+                        isUploading ? "upload-button-disabled" : ""
+                      }`}
+                    >
+                      {isUploading ? "Uploading..." : "Upload Images"}
+                    </label>
+                  </div>
+
+                  <div className="image-grid">
+                    {editProduct.images.map((url, index) => (
+                      <div key={index} className="image-container">
+                        <img
+                          src={url}
+                          alt={`Product ${index + 1}`}
+                          className="product-image"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeEditImage(index)}
+                          className="remove-button"
+                          title="Remove image"
+                        >
+                          <svg
+                            className="remove-icon"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
                 <select
                   value={editProduct.category_id}
@@ -611,18 +1044,31 @@ const AdminProductPage = () => {
                 >
                   Update Product
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setEditProduct(null)}
-                  className="cancel"
-                >
-                  Cancel
-                </button>
               </form>
             </div>
           </div>
         )}
+
+        {/* Pagination controls */}
+        <div className="pagination-controls1">
+          <button
+            onClick={() => handlePageChange("prev")}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          <span>
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={() => handlePageChange("next")}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
       </div>
+      <Footer />
     </>
   );
 };

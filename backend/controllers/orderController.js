@@ -61,7 +61,7 @@ const updateOrderStatusController = async (req, res) => {
   const { status } = req.body;
 
   // Validate the input
-  const validStatuses = ["Pending", "Dispatched", "Delivered", "Canceled"];
+  const validStatuses = ["Pending", "Dispatched", "Delivered", "Cancelled"];
   if (!validStatuses.includes(status)) {
     return res.status(400).json({ message: "Invalid order status" });
   }

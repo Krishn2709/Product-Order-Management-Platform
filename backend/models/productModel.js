@@ -22,6 +22,7 @@ const createProductTable = async () => {
 };
 
 // Add a new product
+// Add a new product with stock
 const addProduct = async (
   name,
   ws_code,
@@ -31,11 +32,12 @@ const addProduct = async (
   images,
   tags,
   category_id,
+  stock_quantity, // Add stock quantity parameter
   is_active = true
 ) => {
   const query = `
-      INSERT INTO products (name, ws_code, sales_price, mrp, package_size, images, tags, category_id, is_active)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO products (name, ws_code, sales_price, mrp, package_size, images, tags, category_id, stock_quantity, is_active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *;
   `;
   const values = [
@@ -47,12 +49,14 @@ const addProduct = async (
     images, // Pass the array directly
     tags, // Pass the array directly
     category_id,
+    stock_quantity, // Pass the stock quantity
     is_active,
   ];
   const result = await db.query(query, values);
   return result.rows[0];
 };
 
+// Edit an existing product and update stock if necessary
 const editProduct = async (id, productDetails) => {
   const {
     name,
@@ -63,6 +67,7 @@ const editProduct = async (id, productDetails) => {
     images,
     tags,
     category_id,
+    stock_quantity, // Add stock quantity to product details
     is_active,
   } = productDetails;
 
@@ -77,8 +82,9 @@ const editProduct = async (id, productDetails) => {
             images = COALESCE($6, images),
             tags = COALESCE($7, tags),
             category_id = COALESCE($8, category_id),
-            is_active = COALESCE($9, is_active)
-        WHERE id = $10
+            stock_quantity = COALESCE($9, stock_quantity), -- Update stock quantity
+            is_active = COALESCE($10, is_active)
+        WHERE id = $11
         RETURNING *;
     `;
   const values = [
@@ -90,6 +96,7 @@ const editProduct = async (id, productDetails) => {
     images,
     tags,
     category_id,
+    stock_quantity, // Pass the updated stock quantity
     is_active,
     id,
   ];

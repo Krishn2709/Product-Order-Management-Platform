@@ -101,6 +101,10 @@
   color: #6b7280;
 }
 
+.order-detail {
+  margin-top: 8px;
+}
+
 .price {
   font-weight: 600;
   color: #333;

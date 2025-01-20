@@ -3,6 +3,7 @@ import { Clock, Package, DollarSign } from "lucide-react";
 import Navbar from "../components/Navbar";
 import "../styles/myorder.css";
 import axiosInstance from "../api/axios";
+import Footer from "../components/Footer";
 
 const MyOrders = () => {
   const [orders, setOrders] = useState([]); // Ensure it's initialized as an array
@@ -15,12 +16,11 @@ const MyOrders = () => {
     fetchOrders();
   }, []);
 
+  //Fteching All orders Handler
   const fetchOrders = async () => {
     try {
       setLoading(true);
       const response = await axiosInstance.get("/orders/my-orders");
-
-      // Log the response structure for debugging
 
       // Check if response.data is an array
       if (Array.isArray(response.data.orders)) {
@@ -37,6 +37,7 @@ const MyOrders = () => {
     }
   };
 
+  //Sorting Order Handler
   const sortOrders = (orders) => {
     if (!Array.isArray(orders)) return []; // Handle non-array input
 
@@ -56,6 +57,7 @@ const MyOrders = () => {
     });
   };
 
+  //Filtering Orders Handler
   const filterOrders = (orders) => {
     if (filterStatus === "all") return orders;
     return orders.filter(
@@ -63,6 +65,7 @@ const MyOrders = () => {
     );
   };
 
+  //Formating Date Handler
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -73,6 +76,7 @@ const MyOrders = () => {
     });
   };
 
+  //Order Status CSS Handler
   const getStatusClass = (status) => {
     switch (status.toLowerCase()) {
       case "pending":
@@ -152,19 +156,21 @@ const MyOrders = () => {
                 <div className="order-content">
                   <div className="order-info">
                     <Clock className="icon" />
-                    <span>{formatDate(order.created_at)}</span>
+                    <span className="order-detail">
+                      {formatDate(order.created_at)}
+                    </span>
                   </div>
 
                   <div className="order-info">
                     <Package className="icon" />
-                    <span>
+                    <span className="order-detail">
                       {order.quantities.reduce((a, b) => a + b, 0)} items
                     </span>
                   </div>
 
                   <div className="order-info">
                     <DollarSign className="icon" />
-                    <span className="price">
+                    <span className="price order-detail">
                       ${parseFloat(order.total_price).toFixed(2)}
                     </span>
                   </div>
@@ -174,6 +180,7 @@ const MyOrders = () => {
           </div>
         )}
       </div>
+      <Footer />
     </>
   );
 };

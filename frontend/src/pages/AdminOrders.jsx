@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Clock, Package, DollarSign, Edit } from "lucide-react";
+import { Clock, Package, DollarSign, Edit, Search } from "lucide-react";
 import Navbar from "../components/Navbar";
 import "../styles/adminOrder.css";
 import axiosInstance from "../api/axios";
@@ -10,7 +10,8 @@ const AdminOrders = () => {
   const [error, setError] = useState(null);
   const [sortBy, setSortBy] = useState("date-desc");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [updatingOrder, setUpdatingOrder] = useState(null); // Track updates in progress
+  const [updatingOrder, setUpdatingOrder] = useState(null);
+  const [searchUserId, setSearchUserId] = useState("");
 
   useEffect(() => {
     fetchOrders();
@@ -36,18 +37,16 @@ const AdminOrders = () => {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      console.log(orderId);
-      console.log(newStatus);
-      setUpdatingOrder(orderId); // Indicate the update process
+      setUpdatingOrder(orderId);
       await axiosInstance.put(`/orders/${orderId}/status`, {
         status: newStatus,
       });
-      fetchOrders(); // Refresh orders after update
+      fetchOrders();
     } catch (err) {
       console.error("Error updating order:", err);
       alert("Failed to update order status. Please try again.");
     } finally {
-      setUpdatingOrder(null); // Reset update state
+      setUpdatingOrder(null);
     }
   };
 
@@ -70,10 +69,14 @@ const AdminOrders = () => {
   };
 
   const filterOrders = (orders) => {
-    if (filterStatus === "all") return orders;
-    return orders.filter(
-      (order) => order.status.toLowerCase() === filterStatus.toLowerCase()
-    );
+    return orders.filter((order) => {
+      const statusMatch =
+        filterStatus === "all" ||
+        order.status.toLowerCase() === filterStatus.toLowerCase();
+      const userIdMatch =
+        !searchUserId || order.user_id.toString() === searchUserId.trim();
+      return statusMatch && userIdMatch;
+    });
   };
 
   const formatDate = (dateString) => {
@@ -94,9 +97,15 @@ const AdminOrders = () => {
         return "bg-gray-100 text-gray-800";
       case "delivered":
         return "bg-green-100 text-green-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800";
       default:
         return "bg-red-100 text-red-800";
     }
+  };
+
+  const isStatusChangeable = (status) => {
+    return !["delivered", "cancelled"].includes(status.toLowerCase());
   };
 
   const processedOrders = filterOrders(sortOrders(orders));
@@ -123,7 +132,32 @@ const AdminOrders = () => {
       <div className="admin-orders-container">
         <div className="orders-header">
           <h1>Manage Orders</h1>
-          <div className="filters">
+          <div className="filters flex items-center gap-4">
+            <div className="relative">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-search search-icon"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search by User ID"
+                value={searchUserId}
+                onChange={(e) => setSearchUserId(e.target.value)}
+                className="select-input pl-10 pr-4"
+              />
+            </div>
+
             <select
               className="select-input"
               value={sortBy}
@@ -140,16 +174,21 @@ const AdminOrders = () => {
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
             >
+              <option value="all">All Status</option>
               <option value="Pending">Pending</option>
               <option value="Dispatched">Dispatched</option>
               <option value="Delivered">Delivered</option>
-              <option value="Canceled">Canceled</option>
+              <option value="Cancelled">Canceled</option>
             </select>
           </div>
         </div>
 
         {processedOrders.length === 0 ? (
-          <div className="no-orders">No orders found</div>
+          <div className="no-orders">
+            {searchUserId
+              ? `No orders found for User ID: ${searchUserId}`
+              : "No orders found"}
+          </div>
         ) : (
           <div className="orders-grid">
             {processedOrders.map((order) => (
@@ -163,6 +202,24 @@ const AdminOrders = () => {
                   </span>
                 </div>
                 <div className="order-content">
+                  <div className="order-info">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="lucide lucide-user"
+                    >
+                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span className="userId">User ID #{order.user_id}</span>
+                  </div>
                   <div className="order-info">
                     <Clock className="icon" />
                     <span>{formatDate(order.created_at)}</span>
@@ -186,18 +243,31 @@ const AdminOrders = () => {
                   <label htmlFor={`status-${order.id}`}>Update Status:</label>
                   <select
                     id={`status-${order.id}`}
-                    className="select-input"
+                    className={`select-input ${
+                      !isStatusChangeable(order.status)
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
                     value={order.status}
                     onChange={(e) =>
                       updateOrderStatus(order.id, e.target.value)
                     }
-                    disabled={updatingOrder === order.id}
+                    disabled={
+                      updatingOrder === order.id ||
+                      !isStatusChangeable(order.status)
+                    }
                   >
                     <option value="Pending">Pending</option>
                     <option value="Dispatched">Dispatched</option>
                     <option value="Delivered">Delivered</option>
-                    <option value="Canceled">Canceled</option>
+                    <option value="Cancelled">Cancelled</option>
                   </select>
+                  {!isStatusChangeable(order.status) && (
+                    <div className="text-sm text-gray-500 mt-1">
+                      Status cannot be changed for {order.status.toLowerCase()}{" "}
+                      orders
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

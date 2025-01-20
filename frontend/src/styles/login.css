@@ -52,9 +52,9 @@ body {
 
 .submit-btn {
   width: 100%;
-  padding: 15px;
+  padding: 10px !important;
   border: none;
-  background-color: #4e73df;
+  background-color: #5487f7;
   color: white;
   font-size: 16px;
   border-radius: 8px;

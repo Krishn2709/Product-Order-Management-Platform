@@ -81,14 +81,56 @@ const getAllOrders = async (role) => {
 };
 
 const updateOrderStatus = async (order_id, status) => {
-  const query = `
-    UPDATE orders
-    SET status = $1
-    WHERE id = $2
-    RETURNING *;
+  // First, get the order details (product IDs and quantities)
+  const orderQuery = `
+    SELECT product_ids, quantities
+    FROM orders
+    WHERE id = $1;
   `;
-  const result = await db.query(query, [status, order_id]);
-  return result.rows[0];
+  const orderResult = await db.query(orderQuery, [order_id]);
+  const order = orderResult.rows[0];
+
+  if (order) {
+    const { product_ids, quantities } = order;
+
+    // If the status is "Dispatched", reduce the stock quantity for each product
+    if (status === "Dispatched" || status === "Delivered") {
+      // Loop through each product and update the stock quantity
+      for (let i = 0; i < product_ids.length; i++) {
+        const product_id = product_ids[i];
+        const quantity = quantities[i];
+
+        // Update the stock of the product by decreasing the quantity ordered
+        const updateStockQuery = `
+          UPDATE products
+          SET stock_quantity = stock_quantity - $1
+          WHERE id = $2 AND stock_quantity >= $1
+          RETURNING *;
+        `;
+        const updateStockResult = await db.query(updateStockQuery, [
+          quantity,
+          product_id,
+        ]);
+
+        // If stock is not enough, return an error
+        if (updateStockResult.rowCount === 0) {
+          throw new Error(`Insufficient stock for product ID ${product_id}`);
+        }
+      }
+    }
+
+    // Update the order status
+    const updateStatusQuery = `
+      UPDATE orders
+      SET status = $1
+      WHERE id = $2
+      RETURNING *;
+    `;
+    const result = await db.query(updateStatusQuery, [status, order_id]);
+    return result.rows[0];
+  }
+
+  throw new Error("Order not found");
 };
 
 module.exports = {

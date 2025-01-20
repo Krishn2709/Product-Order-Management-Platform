@@ -40,11 +40,11 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="navbar-container">
         <Link to="/" className="navbar-logo">
-          MedZon
+          MediCart
         </Link>
         <ul className="navbar-links">
           <li>
-            <Link to="/" className="navbar-link">
+            <Link to="/products" className="navbar-link">
               Home
             </Link>
           </li>
@@ -53,11 +53,7 @@ const Navbar = () => {
               Cart
             </Link>
           </li>
-          <li>
-            <Link to="/products" className="navbar-link">
-              Products
-            </Link>
-          </li>
+
           <li>
             <Link to="/orders" className="navbar-link">
               Orders
