@@ -1,0 +1,72 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependency directories
+node_modules/
+bower_components/
+
+# Build output
+dist/
+dist-ssr/
+.out/
+.next/
+build/
+coverage/
+
+# Environment variables
+.env
+.env.*   # Any environment files like .env.local, .env.production, etc.
+
+# Editor-specific settings
+.vscode/
+!.vscode/extensions.json  # Allow extensions.json for sharing workspace extensions
+.idea/
+.DS_Store  # macOS system files
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Operating System files
+Thumbs.db   # Windows image cache files
+ehthumbs.db # Windows image cache files
+desktop.ini # Windows desktop metadata
+
+# Temporary files and directories
+*.tmp
+*.temp
+*.bak
+*.swp
+*.lock
+*.cache
+*.pid
+*.seed
+*.pid.lock
+*.log
+
+# Testing
+coverage/
+.nyc_output/
+cypress/screenshots/
+cypress/videos/
+playwright-report/
+
+# Package managers
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Ignore these if not explicitly needed
+*.tgz
+*.tar.gz
+
+# Miscellaneous
+public/assets/  # Ignore assets if generated dynamically
+.idea/
