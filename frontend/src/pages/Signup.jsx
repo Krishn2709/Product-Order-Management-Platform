@@ -2,12 +2,15 @@ import React, { useState } from "react";
 import axiosInstance from "../api/axios";
 import "../styles/login.css"; // Reusing the same CSS file
 import Navbar from "../components/Navbar";
+import { ToastContainer, toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 
 const Signup = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   //Signup Handler
   const handleSignup = async (e) => {
@@ -19,7 +22,14 @@ const Signup = () => {
         email,
         password,
       });
-      alert(response.data.message || "User registered successfully!");
+
+      // Show the success toast
+      toast.success("User registered successfully!");
+
+      // Wait for a short delay before navigating
+      setTimeout(() => {
+        navigate("/"); // Navigate to homepage after the toast message
+      }, 2000);
     } catch (error) {
       setError(error.response?.data?.message || "Signup failed");
     }
@@ -66,6 +76,7 @@ const Signup = () => {
           </form>
         </div>
       </div>
+      <ToastContainer />
     </>
   );
 };

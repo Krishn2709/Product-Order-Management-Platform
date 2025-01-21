@@ -1,5 +1,5 @@
 .customer-product-page {
-  max-width: 1500px;
+  max-width: 1600px;
   margin: 2rem auto;
   padding: 0 1rem;
 }
@@ -30,6 +30,11 @@
   margin: 1rem 0;
 }
 
+.product-listing {
+  margin-top: 30px;
+  margin-bottom: 30px;
+}
+
 .pagination-controls button {
   padding: 0.5rem 1rem;
   background-color: #f8f9fa;
@@ -57,7 +62,12 @@
 }
 
 .searchbar2 {
-  width: 500px;
+  width: 750px !important;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin-right: 10px;
+  flex: 1;
 }
 
 .search-bar:focus {
@@ -78,6 +88,30 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 2rem;
+}
+
+.product-card {
+  position: relative; /* Ensures child elements can be positioned absolutely */
+}
+
+.product-image {
+  position: relative;
+}
+
+.low-quantity-tag {
+  position: absolute;
+  top: 10px; /* Adjust spacing from the top of the image */
+  right: 10px; /* Adjust spacing from the right of the image */
+  background-color: #ffcccb; /* Light red background to indicate urgency */
+  color: #b22222; /* Dark red text for better contrast */
+  font-size: 12px;
+  font-weight: bold;
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: 1px solid #b22222;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+  z-index: 10; /* Ensures the tag appears above the image */
 }
 
 .product-card {

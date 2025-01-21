@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import "../styles/carousel.css";
 import img2 from "../Images/img2.jpg";
 import img3 from "../Images/img3.jpg";
-import img4 from "../Images/img4.jpg";
-import img5 from "../Images/img5.jpg";
+import img4 from "../Images/img5.jpg";
+import img5 from "../Images/img6.jpg";
 
 const Carousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const images = [img4, img3, img2, img5];
+  const images = [img3, img5, img2, img4];
 
   // Function to move to the next slide
   const nextSlide = () => {

@@ -1,0 +1,31 @@
+.pagination-controls1 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  padding: 10px 0;
+  font-family: Arial, sans-serif;
+}
+
+.pagination-controls1 button {
+  padding: 8px 16px;
+
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.pagination-controls1 button:hover {
+  background-color: #dbe1e7;
+}
+
+.pagination-controls1 button:disabled {
+  cursor: not-allowed;
+}
+
+.pagination-controls1 span {
+  font-size: 14px;
+  color: #333;
+}

@@ -74,7 +74,7 @@ h2 {
   group-hover: opacity-100;
 }
 
-.pagination-controls1 {
+/* .pagination-controls1 {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -101,7 +101,7 @@ h2 {
   background-color: #e9ecef;
   cursor: not-allowed;
   opacity: 0.6;
-}
+} */
 
 .page-span {
   font-size: 0.875rem;
@@ -164,7 +164,7 @@ h2 {
 }
 
 .search-icon1 {
-  margin-top: 5px;
+  margin-top: 8px;
   margin-right: 5px;
   color: #adaaaa;
 }

@@ -69,7 +69,7 @@ const CartPage = () => {
         setCart([]);
       }
 
-      toast("Order Placed Successfully");
+      toast.success("Order Placed Successfully");
     } catch (error) {
       console.error("Error placing order", error);
     }

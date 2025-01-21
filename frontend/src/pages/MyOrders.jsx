@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import "../styles/myorder.css";
 import axiosInstance from "../api/axios";
 import Footer from "../components/Footer";
+import Pagination from "../components/Pagination";
 
 const MyOrders = () => {
   const [orders, setOrders] = useState([]); // Ensure it's initialized as an array
@@ -11,6 +12,8 @@ const MyOrders = () => {
   const [error, setError] = useState(null);
   const [sortBy, setSortBy] = useState("date-desc");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   useEffect(() => {
     fetchOrders();
@@ -90,7 +93,22 @@ const MyOrders = () => {
     }
   };
 
-  const processedOrders = filterOrders(sortOrders(orders));
+  // Calculate the paginated products
+  const filteredProducts = filterOrders(sortOrders(orders));
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  //Pagination
+  const handlePageChange = (direction) => {
+    if (direction === "next" && currentPage < totalPages) {
+      setCurrentPage((prevPage) => prevPage + 1);
+    } else if (direction === "prev" && currentPage > 1) {
+      setCurrentPage((prevPage) => prevPage - 1);
+    }
+  };
 
   if (loading) {
     return (
@@ -139,11 +157,11 @@ const MyOrders = () => {
           </div>
         </div>
 
-        {processedOrders.length === 0 ? (
+        {paginatedProducts.length === 0 ? (
           <div className="no-orders">No orders found</div>
         ) : (
           <div className="orders-grid">
-            {processedOrders.map((order) => (
+            {paginatedProducts.map((order) => (
               <div key={order.id} className="order-card">
                 <div className="order-header">
                   <div className="order-id">Order #{order.id}</div>
@@ -156,21 +174,19 @@ const MyOrders = () => {
                 <div className="order-content">
                   <div className="order-info">
                     <Clock className="icon" />
-                    <span className="order-detail">
-                      {formatDate(order.created_at)}
-                    </span>
+                    <span className="">{formatDate(order.created_at)}</span>
                   </div>
 
                   <div className="order-info">
                     <Package className="icon" />
-                    <span className="order-detail">
+                    <span className="">
                       {order.quantities.reduce((a, b) => a + b, 0)} items
                     </span>
                   </div>
 
                   <div className="order-info">
                     <DollarSign className="icon" />
-                    <span className="price order-detail">
+                    <span className="price ">
                       ${parseFloat(order.total_price).toFixed(2)}
                     </span>
                   </div>
@@ -179,6 +195,12 @@ const MyOrders = () => {
             ))}
           </div>
         )}
+        {/* Pagination controls */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          handlePageChange={handlePageChange}
+        />
       </div>
       <Footer />
     </>

@@ -3,6 +3,7 @@ import { Clock, Package, DollarSign, Edit, Search } from "lucide-react";
 import Navbar from "../components/Navbar";
 import "../styles/adminOrder.css";
 import axiosInstance from "../api/axios";
+import Pagination from "../components/Pagination";
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -12,6 +13,8 @@ const AdminOrders = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [updatingOrder, setUpdatingOrder] = useState(null);
   const [searchUserId, setSearchUserId] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   useEffect(() => {
     fetchOrders();
@@ -89,6 +92,23 @@ const AdminOrders = () => {
     });
   };
 
+  // Calculate the paginated products
+  const filteredProducts = filterOrders(sortOrders(orders));
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  //Pagination
+  const handlePageChange = (direction) => {
+    if (direction === "next" && currentPage < totalPages) {
+      setCurrentPage((prevPage) => prevPage + 1);
+    } else if (direction === "prev" && currentPage > 1) {
+      setCurrentPage((prevPage) => prevPage - 1);
+    }
+  };
+
   const getStatusClass = (status) => {
     switch (status.toLowerCase()) {
       case "pending":
@@ -107,8 +127,6 @@ const AdminOrders = () => {
   const isStatusChangeable = (status) => {
     return !["delivered", "cancelled"].includes(status.toLowerCase());
   };
-
-  const processedOrders = filterOrders(sortOrders(orders));
 
   if (loading) {
     return (
@@ -141,7 +159,7 @@ const AdminOrders = () => {
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                stroke-width="2"
+                strokewidth="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 class="lucide lucide-search search-icon"
@@ -183,7 +201,7 @@ const AdminOrders = () => {
           </div>
         </div>
 
-        {processedOrders.length === 0 ? (
+        {paginatedProducts.length === 0 ? (
           <div className="no-orders">
             {searchUserId
               ? `No orders found for User ID: ${searchUserId}`
@@ -191,7 +209,7 @@ const AdminOrders = () => {
           </div>
         ) : (
           <div className="orders-grid">
-            {processedOrders.map((order) => (
+            {paginatedProducts.map((order) => (
               <div key={order.id} className="order-card">
                 <div className="order-header">
                   <div className="order-id">Order #{order.id}</div>
@@ -273,6 +291,12 @@ const AdminOrders = () => {
             ))}
           </div>
         )}
+        {/* Pagination controls */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          handlePageChange={handlePageChange}
+        />
       </div>
     </>
   );
