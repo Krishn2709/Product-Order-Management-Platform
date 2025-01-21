@@ -1,4 +1,3 @@
-﻿# Product-Order-Management-Platform
 # Online Product & Order Management Platform
 
 This is an **Online Product & Order Management Platform** developed using **React** and **Redux** for the frontend, and **PostgreSQL** for the backend. The platform allows users to browse products, manage a shopping cart, and place orders. Admin users can manage products and view order statuses.
